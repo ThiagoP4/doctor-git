@@ -11,10 +11,10 @@ import { fileURLToPath } from 'url';
 const execAsync = util.promisify(exec); // Promisify exec for async/await usage
 
 // --- CONFIGURAÇÕES ---
-const pathToModel = "C:\\Users\\Thiago Silva\\Projetos\\doctor-git\\src-tauri\\target\\release\\doctor-git.exe";
 const AIModel = 'llama3.2';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const pathToModel = path.join(__dirname, 'doctor-git.exe'); // Caminho para o executável do pop-up
 const DB_PATH = path.join(__dirname, 'Stone.db');
 
 
@@ -77,7 +77,7 @@ async function analisarCodigo() {
             }, { 
                 role: 'user', 
                 content: ` Analise este git diff e identifique a mudança técnica mais importante.
-                
+
                 REGRAS CRÍTICAS:
                 1. Use APENAS termos do código real analisado (nomes de funções, variáveis, tecnologias)
                 2. NÃO use os exemplos que vou mostrar - eles são apenas formato
@@ -87,12 +87,6 @@ async function analisarCodigo() {
                 FORMATO (NÃO COPIE O CONTEÚDO, apenas o estilo):
                 [Tecnologia] [Ação] [Contexto]
 
-                Exemplos de FORMATO (invente o seu baseado no diff real):
-                - Se adicionou SQLite: "SQLite Integration"
-                - Se mudou de fetch para axios: "Axios Migrated"
-                - Se criou hook React: "Custom Hook Created"
-                - Se corrigiu memory leak: "Memory Leak Fixed"
-
                 IMPORTANTE: Os exemplos acima são APENAS para mostrar o formato. Você DEVE criar um nome novo baseado no diff abaixo.
 
                 DIFF:
@@ -100,7 +94,7 @@ async function analisarCodigo() {
                 Responda APENAS com o nome da conquista ou FALSE:`
             }],
             options: {
-                temperature: 0.3,
+                temperature: 0.6,
                 top_p: 0.9,
                 num_predict: 20,
             }

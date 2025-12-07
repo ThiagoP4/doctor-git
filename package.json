@@ -1,8 +1,14 @@
 {
   "name": "doctor-git",
-  "private": true,
   "version": "1.0.0",
   "type": "module",
+  "bin": {
+    "doctor-git": "./bin.js"
+  },
+  "files": [
+    "bin.js",
+    "doctor-git-brain/**/*"
+  ],
   "scripts": {
     "tauri": "tauri"
   },
