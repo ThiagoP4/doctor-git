@@ -76,29 +76,35 @@ async function analisarCodigo() {
                 content: `Você é um gerador de conquistas para programadores. Você é uma API que retorna APENAS dados crus. NÃO converse. NÃO explique. NÃO use markdown. Retorne APENAS o nome da conquista.`
             }, { 
                 role: 'user', 
-                content: `
-                Analise este código git diff 
-                Identifique a mudança técnica mais importante (ex: mudou de exec para spawn, adicionou auth, criou componente).
-                Dê um nome curto (max 3 palavras) estilo RPG para a melhoria feita.
-                USE TERMOS TÉCNICOS DO CÓDIGO.
-                NÃO use nomes genéricos como "Conquista Nova", "Update", "Refactor". SEJA ESPECÍFICO.
+                content: ` Analise este git diff e identifique a mudança técnica mais importante.
                 
-                Se for trivial (docs, configs, typos, bug fxed), retorne: FALSE
-                
-                Exemplos de resposta aceitável:
-                Spawn Process Added
-                Database Linked
-                Auth Fixed
-                Memory Leak Patched
-                
-                DIFF para analisar:
+                REGRAS CRÍTICAS:
+                1. Use APENAS termos do código real analisado (nomes de funções, variáveis, tecnologias)
+                2. NÃO use os exemplos que vou mostrar - eles são apenas formato
+                3. Se for mudança trivial (typo, docs, formatação) → retorne: FALSE
+                4. Máximo 3 palavras técnicas em inglês
+
+                FORMATO (NÃO COPIE O CONTEÚDO, apenas o estilo):
+                [Tecnologia] [Ação] [Contexto]
+
+                Exemplos de FORMATO (invente o seu baseado no diff real):
+                - Se adicionou SQLite: "SQLite Integration"
+                - Se mudou de fetch para axios: "Axios Migrated"
+                - Se criou hook React: "Custom Hook Created"
+                - Se corrigiu memory leak: "Memory Leak Fixed"
+
+                IMPORTANTE: Os exemplos acima são APENAS para mostrar o formato. Você DEVE criar um nome novo baseado no diff abaixo.
+
+                DIFF:
                 ${diffTruncated}
-                
-                NOME DA CONQUISTA:`
+                Responda APENAS com o nome da conquista ou FALSE:`
             }],
             options: {
-                temperature: 0.2,
+                temperature: 0.3,
+                top_p: 0.9,
+                num_predict: 20,
             }
+            
         });
 
     let result = response.message.content.trim();
@@ -126,7 +132,7 @@ async function analisarCodigo() {
         console.log("Conquista gerada pela IA:", conquest);
 
         await registrarConquista(conquest);
-        
+
         const child = spawn(pathToModel, [conquest], {
                 detached: true,   // Permite que o Node feche enquanto o pop-up fica aberto
                 stdio: 'ignore'   // Não trava o terminal esperando resposta
