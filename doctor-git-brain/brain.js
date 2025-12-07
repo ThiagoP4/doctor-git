@@ -1,11 +1,12 @@
 import ollama from 'ollama';
+import { spawn } from 'child_process';
 import { exec } from 'child_process';
 import util from 'util';
 
 
 const execAsync = util.promisify(exec); // Promisify exec for async/await usage
 
-const pathToModel = "C:\\Users\\Thiago\\Desktop\\doctor-git\\src-tauri\\target\\release\\doctor-git.exe";
+const pathToModel = "C:\\Users\\Thiago Silva\\Projetos\\doctor-git\\src-tauri\\target\\release\\doctor-git.exe";
 
 const AIModel = 'llama3.2';
 
@@ -19,8 +20,8 @@ async function analisarCodigo() {
         // --stat: mostra resumo de arquivos (ex: main.js +20 lines)
         // -p: mostra o código (patch)
         // HEAD^ HEAD: compara o agora com o anterior
-        const { stdout, stderr } = await execAsync('git diff HEAD^ HEAD --stat -p');
-
+        const { stdout, stderr } = await execAsync('git diff HEAD~1 HEAD --stat -p');
+        
         if (!stdout || stdout.length < 10){
             console.log("Nenhuma alteração significativa detectada no último commit.");
             return;
@@ -33,7 +34,7 @@ async function analisarCodigo() {
         console.log("Diferenças do Git obtidas:\n", diffTruncated);
 
     const response = await ollama.chat({
-            model: MODELO_IA,
+            model: AIModel,
             messages: [{ 
                 role: 'user', 
                 content: `
@@ -62,7 +63,11 @@ async function analisarCodigo() {
         console.log("Nenhuma conquista relevante gerada pela IA.");
     } else {
         console.log("Conquista gerada pela IA:", conquest);
-        exec(`start "" "${pathToModel}" --achievement "${conquest}"`);
+        const child = spawn(pathToModel, [conquest], {
+                detached: true,   // Permite que o Node feche enquanto o pop-up fica aberto
+                stdio: 'ignore'   // Não trava o terminal esperando resposta
+            });
+        child.unref();
     }
     } catch (error) {
         console.error("Erro ao analisar o código ou gerar conquista:", error);
