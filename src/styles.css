@@ -1,0 +1,109 @@
+@import url('https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Permanent+Marker&display=swap');
+
+:root {
+    --paper-sepia: #d4b483; /* Cor sólida média do papel envelhecido */
+    --paper-dark-edge: #8c6a4a; /* Cor para bordas queimadas */
+    --line-dark: rgba(60, 40, 20, 0.2); /* Linhas de esquema escuras e sutis */
+    --text-gold: #FFD700; /* Dourado brilhante para o item principal */
+    --text-ink: #3b2815; /* Cor de tinta escura para textos de apoio */
+    --outline-black: #1a1a1a; /* Contorno preto forte */
+}
+
+body {
+    margin: 0;
+    background-color: transparent;
+    display: flex;
+    /* Alinha tudo no canto inferior direito da área da janela */
+    justify-content: flex-end;
+    align-items: flex-end;
+    height: 100vh;
+    overflow: hidden;
+    padding: 20px;
+}
+
+.blueprint-container {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    height: auto;
+    padding: 30px 20px;
+    
+    /* --- FUNDO --- */
+     background: url('./assets/blueprint-bg.jpg') center/cover no-repeat; 
+    
+    /* Fallback (Cor de pergaminho) */
+    background-color: var(--paper-sepia);
+
+    /* Forma de papel rasgado/desenhado */
+    clip-path: polygon(
+        0% 5%, 5% 0%, 95% 2%, 100% 8%, 
+        98% 95%, 92% 100%, 2% 98%, 0% 90%
+    );
+    
+    /* Efeito de borda queimada usando sombra interna */
+    box-shadow: 
+        inset 0 0 0 5px var(--paper-sepia), /* Suavização da borda */
+        inset 0 0 40px var(--paper-dark-edge); /* Sombra interna escura (queimado) */
+    border: 4px solid var(--outline-black); /* Borda externa estilo tinta grossa */
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    
+    /* Animação de entrada vindo da direita */
+    animation: slideInRight 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* Camada extra para parecer um esquema técnico */
+.schematic-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    /* Cria um padrão de grade sutil com linhas ESCURAS agora */
+    background-image: 
+        linear-gradient(var(--line-dark) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line-dark) 1px, transparent 1px);
+    background-size: 30px 30px;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+}
+
+.acquired-text {
+    font-family: 'Architects Daughter', cursive;
+    /* MUDANÇA IMPORTANTE: Cor escura para ler no papel claro */
+    color: var(--text-ink); 
+    font-size: 1.3em;
+    margin: 0 0 0 0;  
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: bold;
+    /* Removemos a sombra branca */
+}
+
+.item-text {
+    font-family: 'Permanent Marker', curs ive;
+    color: var(--text-gold); /* Dourado brilhante */
+    font-size: 1.3rem;
+    line-height: 1.1;
+    margin: 0;
+    text-transform: uppercase;
+    
+    transform: rotate(-2deg);
+    /* Contorno de texto preto forte */
+    text-shadow: 
+        3px 3px 0px var(--outline-black),
+        -2px -2px 0px var(--outline-black),  
+        2px -2px 0px var(--outline-black),
+        -2px 2px 0px var(--outline-black);
+}
+
+@keyframes slideInRight {
+    0% { transform: translateX(120%); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
+}
