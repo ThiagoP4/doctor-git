@@ -2,18 +2,54 @@ import ollama from 'ollama';
 import { spawn } from 'child_process';
 import { exec } from 'child_process';
 import util from 'util';
+import sqlite3 from 'sqlite3';
+import { open } from 'sqlite';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 
 const execAsync = util.promisify(exec); // Promisify exec for async/await usage
 
+// --- CONFIGURAÇÕES ---
 const pathToModel = "C:\\Users\\Thiago Silva\\Projetos\\doctor-git\\src-tauri\\target\\release\\doctor-git.exe";
-
 const AIModel = 'llama3.2';
 
-async function analisarCodigo() {
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DB_PATH = path.join(__dirname, 'Stone.db');
 
+
+async function registrarConquista(nomeConquista) {
     try {
+        const db = await open({
+            filename: DB_PATH,
+            driver: sqlite3.Database
+        });
 
+        await db.exec(`
+            CREATE TABLE IF NOT EXISTS conquest (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                date TEXT,
+                timestamp INTEGER
+            )
+        `);
+
+        await db.run(
+            'INSERT INTO conquest (name, date, timestamp) VALUES (?, ?, ?)',
+            nomeConquista,
+            new Date().toLocaleString('pt-BR'),
+            Date.now()
+        );
+        console.log(`Conquista "${nomeConquista}" registrada no banco de dados.`);
+        await db.close();
+    } catch (error) {
+        console.error("Erro ao registrar conquista no banco de dados:", error);
+    }
+}
+
+
+async function analisarCodigo() {
+    try {
         console.log("Escaneando alterações no código...");
 
         // 1. Obtém as alterações do último commit
@@ -88,6 +124,9 @@ async function analisarCodigo() {
         console.log("Nenhuma conquista relevante gerada pela IA.");
     } else {
         console.log("Conquista gerada pela IA:", conquest);
+
+        await registrarConquista(conquest);
+        
         const child = spawn(pathToModel, [conquest], {
                 detached: true,   // Permite que o Node feche enquanto o pop-up fica aberto
                 stdio: 'ignore'   // Não trava o terminal esperando resposta

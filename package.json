@@ -10,6 +10,8 @@
     "@tauri-apps/cli": "^2"
   },
   "dependencies": {
-    "ollama": "^0.6.3"
+    "ollama": "^0.6.3",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
   }
 }
