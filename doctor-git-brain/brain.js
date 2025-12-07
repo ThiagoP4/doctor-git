@@ -14,7 +14,7 @@ async function analisarCodigo() {
 
     try {
 
-        console.log("Iniciando análise de código com o modelo AI...");
+        console.log("Escaneando alterações no código...");
 
         // 1. Obtém as alterações do último commit
         // --stat: mostra resumo de arquivos (ex: main.js +20 lines)
@@ -29,37 +29,62 @@ async function analisarCodigo() {
 
         // 2. Limita o tamanho para não "explodir" a cabeça da IA
         // Pegamos os primeiros 3000 caracteres. É suficiente para ver nomes de arquivos e lógica principal.
-        const diffTruncated = stdout.substring(0, 3000); // Limita a 3000 caracteres
+        const diffTruncated = stdout.substring(0, 4000); // Limita a 3000 caracteres
 
         console.log("Diferenças do Git obtidas:\n", diffTruncated);
 
-    const response = await ollama.chat({
+        const response = await ollama.chat({
             model: AIModel,
             messages: [{ 
+                role: 'system', 
+                content: `Você é um gerador de conquistas para programadores. Você é uma API que retorna APENAS dados crus. NÃO converse. NÃO explique. NÃO use markdown. Retorne APENAS o nome da conquista.`
+            }, { 
                 role: 'user', 
                 content: `
-                Você é um juiz de código fonte.
-                Analise o seguinte DIFF (alterações de código) de um projeto git:
-
-                --- INICIO DO DIFF ---
-                ${diffTruncated}
-                --- FIM DO DIFF ---
-
-                Instruções:
-                1. Identifique se houve uma implementação real de funcionalidade, uma refatoração complexa ou uma adição importante (Ex: novas funções, lógica de banco de dados, nova tela).
-                2. Se for algo relevante, retorne um NOME CURTO e ÉPICO para a conquista (Max 3 palavras). Ex: "Database Connected", "New Physics Engine", "Auth System".
-                3. Se for apenas correção de texto, formatação, imports ou mudanças triviais, retorne APENAS a palavra "FALSE".
+                Analise este código git diff 
+                Identifique a mudança técnica mais importante (ex: mudou de exec para spawn, adicionou auth, criou componente).
+                Dê um nome curto (max 3 palavras) estilo RPG para a melhoria feita.
+                USE TERMOS TÉCNICOS DO CÓDIGO.
+                NÃO use nomes genéricos como "Conquista Nova", "Update", "Refactor". SEJA ESPECÍFICO.
                 
-                Responda APENAS o nome ou FALSE.
-                `
+                Se for trivial (docs, configs, typos, bug fxed), retorne: FALSE
+                
+                Exemplos de resposta aceitável:
+                Spawn Process Added
+                Database Linked
+                Auth Fixed
+                Memory Leak Patched
+                
+                DIFF para analisar:
+                ${diffTruncated}
+                
+                NOME DA CONQUISTA:`
             }],
+            options: {
+                temperature: 0.2,
+            }
         });
 
-    const result = response.message.content.trim();
+    let result = response.message.content.trim();
 
-    const conquest = result.replace(/["']/g, ""); // Remove aspas se houver
+    if (result.includes("Conquista:")) {
+        result = result.split("Conquista:")[1].trim();
+    }
 
-    if (conquest.toUpperCase().includes === "FALSE" || conquest.length < 2) {
+    result = result.replace(/\*\*/g, "").replace(/\*/g, "").trim();
+
+    result = result.split("\n")[0].trim();
+
+    if (result.endsWith(".")) {
+        result = result.slice(0, -1);
+    }
+
+    console.log(`🤖 Resposta Bruta da IA: "${response.message.content.slice(0, 50)}..."`);
+    console.log(`✨ Conquista Processada: "${result}"`);
+
+    const conquest = result;
+
+    if (conquest.toUpperCase().includes("FALSE") || conquest.length < 2) {
         console.log("Nenhuma conquista relevante gerada pela IA.");
     } else {
         console.log("Conquista gerada pela IA:", conquest);
