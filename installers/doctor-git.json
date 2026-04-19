@@ -1,0 +1,27 @@
+{
+    "version": "0.1.0",
+    "description": "Auto Gerador de Conquistas Gamificadas para Git baseado em Inteligência Artificial.",
+    "homepage": "https://github.com/ThiagoP4/doctor-git",
+    "license": "MIT",
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/ThiagoP4/doctor-git/releases/download/v0.1.0/doctor-git_0.1.0_x64_en-US.msi"
+        }
+    },
+    "installer": {
+        "script": "Write-Host 'Instalando Doctor Git no Windows...' ; msiexec /i \"$dir\\doctor-git_0.1.0_x64_en-US.msi\" /qn"
+    },
+    "uninstaller": {
+        "script": "msiexec /x \"$dir\\doctor-git_0.1.0_x64_en-US.msi\" /qn"
+    },
+    "post_install": [
+        "Write-Host '-------------------------------------------------------'",
+        "Write-Host '[Doctor Git] Instalado Globalmente com Sucesso! \u2705'",
+        "Write-Host '-------------------------------------------------------'",
+        "Write-Host 'Para usar em qualquer de seus projetos Git:'",
+        "Write-Host '  1. Abra o terminal na pasta local do projeto'",
+        "Write-Host '  2. Digite o comando: doctor-git init'",
+        "Write-Host '-------------------------------------------------------'"
+    ],
+    "checkver": "github"
+}

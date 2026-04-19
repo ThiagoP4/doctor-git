@@ -1,7 +1,6 @@
 use std::process::Command; // Permite rodar comandos do terminal (como o 'git')
 use rusqlite::{params, Connection}; // Biblioteca para o SQLite (conexão e parâmetros)
 use chrono::Local; // Biblioteca para manipulação de datas e horas
-use serde::{Deserialize}; // Transforma Texto em JSON e vice-versa
 use serde_json::json; // Ajuda a criar objetos JSON
 use directories::ProjectDirs; // Gerenciar diretórios do SO
 
@@ -210,9 +209,23 @@ use directories::ProjectDirs; // Gerenciar diretórios do SO
 
     fn trigger_popup(conquest_name: &str) -> std::io::Result<()> {
         let exe_path = std::env::current_exe()?;
-        Command::new(exe_path)
-        .arg(conquest_name) // Passa o nome para a janela ler
-        .spawn()?; // Abre e libera (não espera fechar)
+        
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::process::CommandExt;
+            const DETACHED_PROCESS: u32 = 0x00000008;
+            Command::new(exe_path)
+                .arg(conquest_name)
+                .creation_flags(DETACHED_PROCESS) // Descola completamente do Terminal Oculto do Git
+                .spawn()?;
+        }
+        
+        #[cfg(not(target_os = "windows"))]
+        {
+            Command::new(exe_path)
+                .arg(conquest_name)
+                .spawn()?; 
+        }
         
         Ok(())
 
