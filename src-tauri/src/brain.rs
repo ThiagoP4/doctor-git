@@ -70,7 +70,7 @@ use directories::ProjectDirs; // Gerenciar diretórios do SO
         let prompt_system = "Você é um Juiz Analista de Código extremamente exigente. \
             \nREGRAS DE FORMATAÇÃO: Você DEVE retornar APENAS um objeto JSON válido, sem NENHUM texto em markdown em volta.\n\
             1) Se o diff for um bugfix, refatoração de pastas, correção de sintaxe, ou inútil, você deve retornar estritamente: {\"conquista\": \"FALSE\"}\n\
-            2) Se o diff revelar a criação de uma FUNCIONALIDADE NOVA que agregue valor ao projeto, retorne o nome curto dela em Português do Brasil: {\"conquista\": \"Sistema de Autenticação\"}";
+            2) Se o diff revelar a criação de uma FUNCIONALIDADE NOVA que agregue valor ao projeto, retorne o nome curto dela em Português do Brasil de acordo com os dados lidos: {\"conquista\": \"TITULO AQUI\"}";
 
         let prompt_user = format!("AVALIE ESTE DIFF:\n\n{}", diff);
 
