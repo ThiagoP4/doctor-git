@@ -5,16 +5,7 @@ use serde::{Deserialize}; // Transforma Texto em JSON e vice-versa
 use serde_json::json; // Ajuda a criar objetos JSON
 use directories::ProjectDirs; // Gerenciar diretórios do SO
 
-// Estrutura para ler a resposta do Ollama
-#[derive(Deserialize)] // Rust transformará o texto em JSON nesta estrutura
-struct OllamaResponse { 
-    message: OllamaMessage, // Esperamos um campo chamado 'message' que seja do tipo 'OllamaMessage'
-}
-
-#[derive(Deserialize)]
-struct OllamaMessage {
-    content: String, // Esperamos um campo chamado 'content' que seja do tipo String
-}
+// Estruturas de resposta removidas: usaremos serde_json::Value para ter mais flexibilidade.
 
 // Constantes removidas, agora usando Variaveis de Ambiente com Fallback.
 
@@ -74,44 +65,86 @@ struct OllamaMessage {
         println!("Enviando mudanças para análise do modelo AI ({})", diff.len());
 
         // Request HTTP para o Ollama
-        // blocking atua como um await, pausando o programa até receber a resposta.
         let client = reqwest::blocking::Client::new();
-        // !format é uma macro que mistura o texto com váriáveis.
-        let prompt = format!(
-        "Tarefa: Analise o código (git diff) e crie um Nome de Conquista RPG (Inglês, Max 3 palavras). \
-        Regras: 1. ANALISE IMPORTS/FUNÇÕES. 2. USE TERMOS TÉCNICOS. 3. Trivial = FALSE. \
-        Retorne APENAS o nome. \
-        CÓDIGO: {}", diff
-        );
+        
+        let prompt_system = "Você é um Juiz Analista de Código extremamente exigente. \
+            \nREGRAS DE FORMATAÇÃO: Você DEVE retornar APENAS um objeto JSON válido, sem NENHUM texto em markdown em volta.\n\
+            1) Se o diff for um bugfix, refatoração de pastas, correção de sintaxe, ou inútil, você deve retornar estritamente: {\"conquista\": \"FALSE\"}\n\
+            2) Se o diff revelar a criação de uma FUNCIONALIDADE NOVA que agregue valor ao projeto, retorne o nome curto dela em Português do Brasil: {\"conquista\": \"Sistema de Autenticação\"}";
+
+        let prompt_user = format!("AVALIE ESTE DIFF:\n\n{}", diff);
+
         // Configuração via Variável de Ambiente com valor Padrão (Fallback)
         let ai_model = std::env::var("OLLAMA_MODEL").unwrap_or_else(|_| "llama3.2".to_string());
         let api_url = std::env::var("OLLAMA_URL").unwrap_or_else(|_| "http://localhost:11434/api/chat".to_string());
 
         let body = json!({
             "model": ai_model,
+            "format": "json",
             "messages": [
-                { "role": "system", "content": "Você é um analista de código. Retorne APENAS o nome da conquista." },
-                { "role": "user", "content": prompt }
+                { "role": "system", "content": prompt_system },
+                { "role": "user", "content": prompt_user }
             ],
-            "options": { "temperature": 0.4 },
+            "options": { "temperature": 0.1 },
             "stream": false // Envia todo o texto de uma vez, não em partes
         });
 
         // client.post(...): Define o endereço dinâmico e o método (POST).
         match client.post(&api_url).json(&body).send() {
             Ok(res) => {
-                // res.json::<OllamaResponse>(): Tenta pegar o texto que voltou e forçar
-                // ele a caber dentro daquela Struct 'OllamaResponse' que criamos no começo.
-                // if let Ok(json): É um jeito curto de fazer um match.
-                // Se a conversão para JSON der certo, chame o resultado de 'json' e entre no bloco.
-                if let Ok(json) = res.json::<OllamaResponse>() {
-                    // Passa apenas o texto da mensagem para a próxima etapa.
-                    process_result(json.message.content);
+                let status = res.status();
+                // Analisa o JSON genérico
+                if let Ok(json) = res.json::<serde_json::Value>() {
+                    // Verifica se o Ollama retornou um erro
+                    if let Some(err) = json.get("error") {
+                        let err_msg = err.as_str().unwrap_or("");
+                        if err_msg.contains("not found") {
+                            println!("Modelo Ausente. Abrindo popup interno de instalação...");
+                            pull_model(&ai_model);
+                            return;
+                        }
+                        eprintln!("Erro da API do Ollama: {}", err_msg);
+                        return;
+                    }
+                    
+                    // Verifica se houve sucesso e extrai a mensagem de conquista
+                    if let Some(message) = json.get("message") {
+                        if let Some(content_str) = message.get("content").and_then(|c| c.as_str()) {
+                            // A IA devolverá um JSON em forma de String. Precisamos ler esse JSON.
+                            if let Ok(parsed_content) = serde_json::from_str::<serde_json::Value>(content_str) {
+                                if let Some(conquista) = parsed_content.get("conquista").and_then(|c| c.as_str()) {
+                                    process_result(conquista.to_string());
+                                }
+                            }
+                        }
+                    }
+                } else if !status.is_success() {
+                    eprintln!("Erro HTTP ({}) na rede com o Ollama", status);
                 }
             }
-            Err(e) => println!("Erro ao conectar com Ollama: {}", e),
+            Err(e) => eprintln!("Erro ao conectar com Ollama (Ele não está rodando?). Falha fatal: {}", e),
         }
 
+    }
+
+    fn pull_model(model_name: &str) {
+        #[cfg(target_os = "windows")]
+        {
+            let command_str = format!("echo ----------------------------------------------------- && echo DOCTOR GIT - Download automatico do modelo de Inteligencia && echo ----------------------------------------------------- && echo. && echo O seu computador ainda nao tem o modelo '{}' instalado. && echo Iniciaremos o Download oficial pelo Ollama (pode demorar MUITO dependendo da internet). && echo. && ollama pull {} && echo. && echo [SUCESSO] Concluido! Esse terminal ja pode ser fechado. && pause", model_name, model_name);
+            
+            // Lança uma janela física, independente do hook (que é escondido).
+            let _ = Command::new("cmd")
+                .args(&["/C", "start", "cmd", "/K", &command_str])
+                .spawn();
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            // Fallback genérico para Linux/MacOS (execução bloqueante por enquanto)
+            let _ = Command::new("ollama")
+                .args(&["pull", model_name])
+                .status();
+        }
     }
 
     fn process_result(raw_result: String) {

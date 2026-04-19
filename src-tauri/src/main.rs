@@ -9,10 +9,15 @@ fn main() {
     // 1. Verifica os argumentos
     let args: Vec<String> = env::args().collect();
 
-    // 2. Se tiver a flag "--brain", vira o analisador e encerra
-    if args.len() > 1 && args[1] == "--brain" {
-        brain::run_analysis();
-        return; // <--- IMPORTANTE: Sai aqui e NÃO inicia o Tauri
+    if args.len() > 1 {
+        let command = &args[1];
+        if command == "--brain" {
+            brain::run_analysis();
+            return;
+        } else if command == "init" {
+            run_init();
+            return;
+        }
     }
 
     // 3. Se não tiver flag, inicia a Interface Gráfica (Tauri)
@@ -62,4 +67,47 @@ fn get_achievement() -> String {
 #[tauri::command]
 fn close_window(app_handle: tauri::AppHandle) {
     app_handle.exit(0);
+}
+
+// Lógica de injeção automática no repositório atual
+fn run_init() {
+    let git_dir = std::path::Path::new(".git");
+    if !git_dir.exists() || !git_dir.is_dir() {
+        eprintln!("❌ ERRO: Nenhuma pasta '.git' detectada! Execute o comando 'doctor-git init' apenas na raiz de projetos Git que voce deseja instalar este rastreador.");
+        std::process::exit(1);
+    }
+    
+    let hooks_dir = git_dir.join("hooks");
+    if !hooks_dir.exists() {
+        if let Err(e) = std::fs::create_dir_all(&hooks_dir) {
+            eprintln!("❌ ERRO ao criar a pasta hooks na estrutura do Git: {}", e);
+            std::process::exit(1);
+        }
+    }
+    
+    let hook_file = hooks_dir.join("post-commit");
+    
+    // Detecta o caminho absoluto onde este executável está instalado para injetá-lo no hook
+    // sem depender de variáveis PATH locais do SO do usuário.
+    let current_exe = std::env::current_exe().unwrap_or_else(|_| std::path::PathBuf::from("doctor-git"));
+    let exe_path_str = current_exe.to_string_lossy().replace("\\", "/"); // Linux/Bash format
+
+    // Roteiro do ShellScript em Bash que acionará o executavel em Background silencioso
+    let hook_content = format!(r#"#!/bin/sh
+# ----------------------------------------------------
+# DOCTOR GIT - Auto Gerador de Conquistas Gamificadas
+# ----------------------------------------------------
+# Gerado via 'doctor-git init'. Caminho travado para segurança.
+
+"{}" --brain >> doctor_git_log.txt 2>&1 &
+"#, exe_path_str);
+
+    if let Err(e) = std::fs::write(&hook_file, hook_content) {
+        eprintln!("❌ ERRO ao injetar a automação dentro do post-commit: {}", e);
+        std::process::exit(1);
+    }
+    
+    println!("🚀 [Doctor Git] Injeção de Telemetria Git Automática executada com sucesso!");
+    println!("✅ Agora o arquivo '.git/hooks/post-commit' foi interceptado.");
+    println!("🕹️  A partir de hoje, a sua IA vai vigiar ativamente esta pasta e gerar Conquistas dos seus Diff!");
 }
