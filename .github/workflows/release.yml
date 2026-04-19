@@ -1,0 +1,57 @@
+name: 'Release Tauri App'
+
+on:
+  push:
+    # Este workflow será trigado toda vez que você enviar uma tag para o github, exemplo: v0.1.0
+    tags:
+      - 'v*'
+  # Permite rodar o workflow manualmente pelo painel do GitHub
+  workflow_dispatch:
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [macos-latest, ubuntu-22.04, windows-latest]
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Instalar pacotes do Linux necessários pelo Tauri para compilar no Ubuntu
+      - name: Install dependencies (ubuntu only)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      # Instalar Node (para rodar o npm install na raiz)
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Instalar Rust para lidar com a parte backend do src-tauri
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+           # Opcional: Garante build universal no MacOS se desejar no futuro
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      # Aqui acontece a magia: O GitHub Actions compila usando a action oficial do Tauri
+      - name: Build and Release the Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          # O GITHUB_TOKEN é injetado automaticamente pelo GitHub, não se preocupe com ele
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }} # Usa a tag da sua release. Ex: v0.1.0
+          releaseName: 'Doctor Git ${{ github.ref_name }}'
+          releaseBody: 'Uma nova versão do Doctor Git foi liberada!'
+          releaseDraft: true # Inicia como rascunho para você revisar antes de publicar para todos
+          prerelease: false

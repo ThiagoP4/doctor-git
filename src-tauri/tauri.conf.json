@@ -10,16 +10,14 @@
     "withGlobalTauri": true,
     "windows": [
       {
-      "title": "Doctor Git",
+        "title": "Doctor Git",
         "width": 500,      
         "height": 350,     
         "decorations": false,
         "transparent": true,
         "alwaysOnTop": true,
         "resizable": false,
-        "center": false,
-        "x": 3000, 
-        "y": 2000,
+        "visible": false,
         "shadow": false,
         "skipTaskbar": true 
       }
